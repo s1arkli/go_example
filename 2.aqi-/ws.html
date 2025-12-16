@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test</title>
+</head>
+<body>
+<h2>WebSocket Test</h2>
+<div id="status">Connecting...</div>
+<div id="messages"></div>
+<input type="text" id="msgInput" placeholder="Type message">
+<button id="sendBtn">Send</button>
+
+<script>
+    const statusEl = document.getElementById('status');
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // 建立 WebSocket 连接
+    const ws = new WebSocket("ws://localhost:2015/ws");
+
+    ws.onopen = () => {
+        statusEl.innerText = "Connected to server";
+        console.log("Connected");
+    };
+
+    ws.onmessage = (msg) => {
+        const p = document.createElement('p');
+        p.innerText = `Server: ${msg.data}`;
+        messagesEl.appendChild(p);
+        console.log("Message from server:", msg.data);
+    };
+
+    ws.onerror = (err) => {
+        statusEl.innerText = "Connection error";
+        console.error("WebSocket error:", err);
+    };
+
+    ws.onclose = () => {
+        statusEl.innerText = "Connection closed";
+        console.log("Connection closed");
+    };
+
+    // 发送消息
+    sendBtn.onclick = () => {
+        const text = inputEl.value;
+        if (text && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: text })); // 用 action 代替直接文本
+            const p = document.createElement('p');
+            p.innerText = `You: ${text}`;
+            messagesEl.appendChild(p);
+            inputEl.value = '';
+        }
+    };
+</script>
+</body>
+</html>
