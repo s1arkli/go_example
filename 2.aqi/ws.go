@@ -8,6 +8,11 @@ import (
 	"github.com/wonli/aqi/ws"
 )
 
+var middleware = func(a *ws.Context) {
+	fmt.Println("middleware")
+	a.Next()
+}
+
 func main() {
 	//app是AppConfig结构体实例
 	app := aqi.Init(
@@ -16,31 +21,32 @@ func main() {
 		//服务名称,以及服务端口
 		aqi.HttpServer("my server", "port"),
 	)
+	HandleWs(app)
+}
 
+func HandleWs(app *aqi.AppConfig) {
 	engine := gin.Default()
+	//升级
 	engine.GET("/ws", func(c *gin.Context) {
 		ws.HttpHandler(c.Writer, c.Request)
 	})
 
+	//路由组
 	wsr := ws.NewRouter()
-
-	var f = func(a *ws.Context) {
-		fmt.Println("middleware")
-	}
-
-	wsr.Add("hi", f, func(a *ws.Context) {
+	wsr.Add("hi", middleware, func(a *ws.Context) {
 		a.Send(ws.H{
 			"hi": "root",
 		})
 	})
 
 	group1 := wsr.Group("group1")
-	group1.Add("hi", func(a *ws.Context) {
+	a := group1.Use(middleware)
+	a.Add("hi", func(a *ws.Context) {
 		a.Send(ws.H{
 			"hi": "group1",
 		})
 	})
-
+	
 	app.WithHttpServer(engine)
 	app.Start()
 }
