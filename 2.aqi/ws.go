@@ -17,7 +17,7 @@ func main() {
 	//app是AppConfig结构体实例
 	app := aqi.Init(
 		//设置配置文件名
-		aqi.ConfigFile("config-test.yaml"),
+		aqi.ConfigFile("./2.aqi/config-test.yaml"),
 		//服务名称,以及服务端口
 		aqi.HttpServer("my server", "port"),
 	)
@@ -46,7 +46,7 @@ func HandleWs(app *aqi.AppConfig) {
 			"hi": "group1",
 		})
 	})
-	
+
 	app.WithHttpServer(engine)
 	app.Start()
 }
