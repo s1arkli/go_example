@@ -39,13 +39,24 @@ func HandleWs(app *aqi.AppConfig) {
 		})
 	})
 
-	group1 := wsr.Group("group1")
-	a := group1.Use(middleware)
-	a.Add("hi", func(a *ws.Context) {
-		a.Send(ws.H{
-			"hi": "group1",
+	{
+		group1 := wsr.Group("1")
+		group1.Add("hi", func(a *ws.Context) {
+			a.Send(ws.H{
+				"hi": "group1",
+			})
 		})
-	})
+	}
+
+	{
+		group2 := wsr.Group("2")
+		a := group2.Use(middleware)
+		a.Add("hi", func(a *ws.Context) {
+			a.Send(ws.H{
+				"hi": "group1",
+			})
+		})
+	}
 
 	app.WithHttpServer(engine)
 	app.Start()
