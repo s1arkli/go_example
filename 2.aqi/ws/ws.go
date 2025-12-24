@@ -21,10 +21,13 @@ func main() {
 		//服务名称,以及服务端口
 		aqi.HttpServer("my server", "port"),
 	)
-	HandleWs(app)
+	engine := HandleWs()
+
+	app.WithHttpServer(engine)
+	app.Start()
 }
 
-func HandleWs(app *aqi.AppConfig) {
+func HandleWs() *gin.Engine {
 	engine := gin.Default()
 	//升级
 	engine.GET("/ws", func(c *gin.Context) {
@@ -57,7 +60,5 @@ func HandleWs(app *aqi.AppConfig) {
 			})
 		})
 	}
-
-	app.WithHttpServer(engine)
-	app.Start()
+	return engine
 }
