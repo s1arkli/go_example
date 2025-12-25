@@ -1,10 +1,12 @@
-## ws概述
-- websocket 连接是基于tcp的http协议的升级协议，可以在客户端和服务端之间建立长连接，可以持续、双向的进行通信。
-
 ## aqi中的ws概述
+- 对于已连接用户有两种接收消息的方式，一种是通过客户端访问指定路由，ws连接返回客户端需要的数据。一种是让用户订阅Topic，服务器推送消息。
+  这两种方式的区别在于一个是被动响应，一个是主动推送，这也是ws的优点之一（双向通信）。
 - 在aqi框架中，需要首先使用http请求升级ws连接， 在使用action字段进行路由访问，形式为：a.b.c，使用json作为通信载体。
 对后端而言，ws.HttpHandler(c.Writer, c.Request)升级http为ws，使用ws.NewRouter()构建路由实例，使用Add,Group,Use
-三个函数进行路由的延伸、分组以及中间件的使用。
+三个函数进行路由的延伸、分组以及中间件的使用。当客户端访问指定路由时，服务器做出响应（操作数据库，调用第三方，返回消息等）。
+- 在aqi中，对于ws连接的管理有一个层级的关系，hubc是总枢纽，其下记录着users，而users保存对应的clients（多端登陆的conn），在hubc中又管理着
+pubsub系统（是服务器主动推送消息的管理中枢，初始化hubc时会开启goroutine来推送消息）。当某个Topic需要发送消息的时候，hubc会找到订阅该Topic
+下所有的user，并把消息发送给user的所有clients。
 
 ## ws.NewRouter
 
@@ -18,6 +20,8 @@ type Routers struct {
 - 返回的routers实例---manager是map，形式为name:[]handlerFunc的键值对（一是管理当前路由下的所有handlerFunc，二是由于map的
 唯一键可以防止重复注册路由）---handlerMembers也是[]handlerFunc，作用是使用use管理中间件。---groups保存的是当前路由（
 由于Group方法是值类型接收者，每次都会复制一份Routers，所以内部保存的是父路由以及当前路由，也就是这个分组的路由）
+
+- **主要函数**
 
 ## Add
 - 新增子路由，先将groups和输入name拼出字路由的name，在manager中检查是否重复注册字路由。然后初始化[]handlerFunc，初始长度为use的
@@ -44,19 +48,7 @@ type Client struct {
 Hub            *Hubc       `json:"-"`
 Conn           net.Conn    `json:"-"`
 Send           chan []byte `json:"-"`
-Endpoint       string      `json:"-"` //入口地址
-OnceId         string      `json:"-"` //临时ID，扫码登录等场景作为客户端唯一标识
-ClientId       string      `json:"-"` //客户端ID
-Disconnecting  bool        `json:"-"` //已被设置为断开状态（消息发送完之后断开连接）
-SyncMsg        bool        `json:"-"` //是否接收消息
-LastMsgId      int         `json:"-"` //最后一条消息ID
-RequiredValid  bool        `json:"-"` //人机验证标识
-Validated      bool        `json:"-"` //是否已验证
-ValidExpiry    time.Time   `json:"-"` //验证有效期
-ValidCacheData any         `json:"-"` //验证相关缓存数据
-AuthCode       string      `json:"-"` //用于校验JWT中的code，如果相等识别为同一个用户的网络地址变更
-ErrorCount     int         `json:"-"` //错误次数
-Closed         bool        `json:"-"` //是否已经关闭
+...
 
 Limiter      *rate.Limiter `json:"-"` //限速器
 RequestQueue chan string   `json:"-"` //处理队列
@@ -65,35 +57,14 @@ HttpRequest *http.Request       `json:"-"`
 HttpWriter  http.ResponseWriter `json:"-"`
 
 User              *User     `json:"user,omitempty"`    //关联用户
-Scope             string    `json:"scope"`             //登录jwt scope, 用于判断用户从哪里登录的
-AppId             string    `json:"appId"`             //登录应用Id
-StoreId           uint      `json:"storeId"`           //店铺ID
-MerchantId        uint      `json:"merchantId"`        //商户ID
-TenantId          uint      `json:"tenantId"`          //租户ID
-Platform          string    `json:"platform"`          //登录平台
-GroupId           string    `json:"groupId"`           //用户分组Id
-IsLogin           bool      `json:"isLogin"`           //是否已登录
-LoginAction       string    `json:"loginAction"`       //登录动作
-ForceDialogId     string    `json:"forceDialogId"`     //打开聊天界面的会话ID
-IpAddress         string    `json:"ipAddress"`         //IP地址
-IpAddressPort     string    `json:"IpAddressPort"`     //IP地址和端口
-IpLocation        string    `json:"ipLocation"`        //通过IP转换获得的地理位置
-ConnectionTime    time.Time `json:"connectionTime"`    //连接时间
-LastRequestTime   time.Time `json:"lastRequestTime"`   //最后请求时间
-LastHeartbeatTime time.Time `json:"lastHeartbeatTime"` //最后发送心跳时间
-
-mu   sync.RWMutex
-Keys map[string]any
-
-// recent logs ring buffer (last 100 items)
-recentLogs  [100]string
-recentIdx   int
-recentCount int
+...
 }
 ```
 
 客户端结构体主要记录了ws连接、所属hub、发送消息管道（方便发送响应）、客户端的各种状态和信息（由于ws是无状态的，服务器方需要维护状态，不然
 有一边退出了ws连接，另一边仍然不知道，继续发送消息会导致panic或报错）、是否被注销等字段。
+
+- **主要函数**
 
 ## Reader()
 - wsutil.ReadClientData监听ws连接，获取客户端请求。对text类型的请求放到RequestQueue管道做缓冲。请求为ping返回pong（测试连通性）。
@@ -141,5 +112,133 @@ type Hubc struct {
 	Connection chan *Client
 	Disconnect chan *Client
 }
+
+var Hub *Hubc
+
+func NewHubc() *Hubc {
+        Hub = &Hubc{
+        PubSub:     NewPubSub(),
+        Guests:     []*Client{},
+        Users:      new(sync.Map),
+        Connection: make(chan *Client),
+        Disconnect: make(chan *Client),
+    }
+    return Hub
+}
 ```
 
+使用var初始化hubc结构体，使用NewHubc给hub进行初始化配置，管理user连接和断联、topic消息发布中枢。
+
+- **主要函数**
+
+## Run()
+- ```go go h.PubSub.Start() ```
+开启goroutine用来监听订阅，一旦开启了订阅，则会对订阅进行处理，发送消息给用户
+
+- ```go go h.guard()```
+每30秒检测一次，如果守护不为nil，则执行回调（自定义回调函数）。使用sync.Map的range方法，遍历users，检测user是否还在连接中，最后心跳时间超过
+设定的5min，则清除该用户。统计用户数量，发布订阅消息（那这里我就懂了，应该还是给管理员的消息后门）。
+
+- run函数接下来的部分是管理客户端连接和断联，在客户端结构体处，一旦在写和读时发生错误，这些客户端会保存到hubc的disconnect字段，一旦此管道有值，
+则会对断联客户端进行处理，关闭管道，关闭goroutine，日志记录。此处把连接的客户端和断开的客户端通过两个topic主题发布给订阅了该主题的user（大概是
+管理员，由管理员订阅这个topic用来监控程序的用户情况？）
+
+## Broadcast()
+遍历guests字段，调用sendMsg函数将消息广播给访客客户端（未登陆用户？）。接着遍历user，调用sendMsg广播消息（user是app的内部用户，而client是
+改用户的物理连接？所以一个user可以有多个clients，而client对应一个user。方便多端登陆管理？）
+
+## UserLogin(uid,appId string,client *Client)
+那这个函数就是注册app内部用户的方法，（appId对应不同的物理登陆设备？），app登陆之后保存到users字段中，并从访客列表清除（所以所有用户在登陆之前
+都是访客？）。
+
+
+# User
+
+```go 
+type User struct {
+	//公共基础信息
+	Uid          uint             `json:"uid"`                //整型唯一ID
+	...
+	
+	//最后心跳时间
+	LastHeartbeatTime time.Time
+
+	//用户相关数据
+	Hub        *Hubc     `json:"-"`
+	AppClients []*Client `json:"-"` //appId对应客户端
+
+	SubTopics map[string]*Topic `json:"-"` //topicId订阅的主题名称及信息
+	sync.RWMutex
+}
+```
+
+user结构体是用来管理app内的用户身份的结构体。内部包含该用户的多个客户端，以及各种身份信息。最主要的还是AppClients、SubTopics字段，前者用来做
+多端登陆管理，后者用来给不同场景下的所有user发布消息（目前就有管理员的后门topic，disconnect...）
+
+- **主要函数**
+
+## AddSubTopic(topic *Topic)
+给user订阅指定topic
+
+## UnsubTopic(topicId string)
+给user取消订阅topic
+
+## UnsubAllTopics()
+给user取消订阅全部topic（应该在user断联时调用）
+
+## appLogin()
+首先遍历user的客户端连接，发现同一个appid时，拿出来与新登陆的做比对。如果ws conn不同（代表同一个设备断网再次连接？），反之将改客户端加入user
+的Appclients字段。
+
+- 总结：该方法是由客户端ws连接转为app内部用户的方法。
+
+## appLogout()
+定义了一个index=-1，如果index>-1也就是在user.Appclients内部存在这么一个客户端，那么就走logout步骤。
+
+# PubSub & Topic
+```go
+type PubSub struct {
+    Topics        *sync.Map      //Topics map[string]*Topic //主题名称和Top对应map
+    TopicMsgQueue chan *TopicMsg //主题消息队列
+}
+
+type Topic struct {
+    Id          string   //订阅主题ID
+    PubSub      *PubSub  //关联PubSub
+    SubUsers    sync.Map //SubUsers map[string]*time.Time //订阅用户uniqueId和订阅时间
+    SubHandlers sync.Map //SubHandlers map[string]func(msg *TopicMsg) //内部组件间通知
+}
+
+type TopicMsg struct {
+    Ori     any    //原始数据方便订阅主题的函数处理
+    TopicId string //话题ID
+    Msg     []byte //消息内容，方便客户端处理
+}
+```
+
+PubSub是整个hubc中的消息分发核心，主要作用是用户订阅、取消订阅Topic，并将Topic的消息分发给订阅用户，还能管理Topic（初始化、删除）
+
+- **主要函数**
+
+## Start()
+这是整个PubSub发送消息的核心，关键是监听管道，待发送消息抵达管道，管道将消息的所属topic拿到，调用SendToSubUser函数发送msg。（topicMsg的
+结构也挺有意思，一份是原始数据，可以对其进行预处理，一份是发送给客户端的json数据）
+
+## Sub & SubFunc
+```go
+// Sub 订阅主题
+func (a *PubSub) Sub(topicId string, user *User) {
+	a.initTopic(topicId).AddSubUser(user)
+}
+
+// SubFunc 以函数方式订阅
+func (a *PubSub) SubFunc(topicId string, f func(msg *TopicMsg)) {
+	a.initTopic(topicId).AddSubHandle(f)
+}
+```
+
+这两个函数，前者是给user订阅指定topic，后者是给指定topic增加消息的预处理方法（一个是对用户，一个是对后端）
+
+# aqi总结
+aqi是一个ws消息传输框架，服务器能够定制路由做到请求分发，匹配到对应函数执行。同时也能够发布topic给所有订阅者推送消息。既保证了客户端请求需要，
+还增加了服务器的主动推送能力。前后端的消息传递统一使用json格式，好处是方便解析易于开发，可读性好。
