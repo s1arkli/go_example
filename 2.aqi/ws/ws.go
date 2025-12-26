@@ -41,24 +41,5 @@ func HandleWs() *gin.Engine {
 			"hi": "root",
 		})
 	})
-
-	{
-		group1 := wsr.Group("1")
-		group1.Add("hi", func(a *ws.Context) {
-			a.Send(ws.H{
-				"hi": "group1",
-			})
-		})
-	}
-
-	{
-		group2 := wsr.Group("2")
-		a := group2.Use(middleware)
-		a.Add("hi", func(a *ws.Context) {
-			a.Send(ws.H{
-				"hi": "group1",
-			})
-		})
-	}
 	return engine
 }
