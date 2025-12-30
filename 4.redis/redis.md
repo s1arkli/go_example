@@ -10,7 +10,6 @@ key\r\n
 # Client
 ```go
 type Client struct {
-	//
 	*baseClient
 	//process func
 	cmdable
@@ -46,18 +45,40 @@ func (cn *Conn) WithWriter(ctx context.Context, timeout time.Duration, fn func(w
     //send cmd by tcp
     return cn.bw.Flush()
 }
+
+    if err := cn.WithReader(c.context(ctx), c.cmdTimeout(cmd), func(rd *proto.Reader) error {
+		...
+        return readReplyFunc(rd)
+    })
+
+    func (cmd *StringCmd) readReply(rd *proto.Reader) (err error) {
+        cmd.val, err = rd.ReadString()
+		return err
+    }
 ```
-writeCmd(wr, cmd)的作用是将cmd的args以RESP的规范序列化写入wr待用。其中cn是封装了tcp连接的*pool.Conn，cn.WithWriter的作用是将完成序列化
+- writeCmd(wr, cmd)的作用是将cmd的args以RESP的规范序列化写入wr待用。其中cn是封装了tcp连接的*pool.Conn，cn.WithWriter的作用是将完成序列化
 的内容写入缓冲区，调用Flush将缓存区的内容经tcp发送给redis，redis执行命令，实现crud。
+- WithReader是从redis拿本次cmd执行和响应，实际执行函数是readReply，返回的数据也是符合RESP规范的，需要反序列化到cmd.val字段内部，通过
+cmd.Result拿到响应结果。
 
 # 总结
-- 此包就是把redis能看懂的符合RESP协议的命令，高度抽象为go函数，每次调用go函数，就是将输入的命令和参数编码为redis命令，并将命令经tcp连接传输
-给redis。
+- 此包就是把符合RESP协议的redis命令，高度抽象为go函数，每次调用go函数，就是将输入的命令和参数编码为redis命令，并将命令经tcp连接传输给redis。
 
-- 关于结构体和map的使用，结构体是具有固定字段，在序列化为json的时候需要有结构体实例，并且需要json tag。而map没有固定字段，以k-v的形式，
-可以保存任意k-v信息，灵活性更好。我觉得应该是看需要解析的内容的结构，如果是固定结构，例如mysql表内的固定struct，就可以使用struct形式。如果保存
-的是需要经常拓展或者修改的内容，就适合map，临时定义struct不现实。在meet项目中，我们将最常用的user结构体存入redis，在get的时候也是用user结构体
-去解析，这样就省下读取mysql的步骤，直接从redis内部读取。
+- cache中使用map还是struct
+  - 关于结构体和map的使用，结构体是具有固定字段，在序列化为json的时候需要定义结构体，并且需要json tag。而map没有固定字段，以k-v的形式，
+  可以保存任意k-v信息，灵活性更好。具体使用哪一个应该是看需要解析的内容的结构，如果是固定结构或者变动不频繁，例如mysql表的model，就可以使用
+  struct形式。如果保存的是需要经常拓展或者结构变动频繁的内容，就适合map，临时定义struct不现实。
+  - 在meet项目中，由于我们对于某些model的信息需求频繁，所以将model序列化为json保存进redis中，在get的时候先从缓存拿，再反序列化为定义好的model
+
+## tips
+- 把结构体的方法赋值给其他结构体的函数字段，这样两个函数都可以调用这个方法（这个字段就像是一个接口一样，满足这样的函数形式的函数都可以赋值给这个
+结构体，这个结构体就可以调用不同的方法）。
+
+- 类型断言判断接口是否实现
+```go
+var _ Pooler = (*ConnPool)(nil)
+```
+var一个Pooler类型变量，将nil类型断言为*ConnPool类型，可以在编译之前判断定义的ConnPool是否实现了Pooler接口。
 
 - 连接池：
     - 配置opt--连接超时、最小最大连接数量、连接的持续时间等等，所有的配置都从这个字段读取
@@ -66,12 +87,3 @@ writeCmd(wr, cmd)的作用是将cmd的args以RESP的规范序列化写入wr待�
     - 并发锁--很可能高频使用连接，需要增加锁来保证并发安全。
     - 连接数组--保存所有的tcp连接，方便进行关闭和新增连接
     - 钩子函数--方便在连接前后增加自己需要的逻辑，如在连接前后增加日志
-
-- 学到了把结构体的方法赋值给其他结构体的函数字段，这样两个函数都可以调用这个方法（这个字段就像是一个接口一样，满足这样的函数形式的函数都可以赋值给这个
-结构体，这个结构体就可以调用不同的方法）。
-
-- 类型断言判断接口是否实现
-```go
-var _ Pooler = (*ConnPool)(nil)
-```
-var一个Pooler类型变量，将nil类型断言为*ConnPool类型，可以在编译之前判断定义的ConnPool是否实现了Pooler接口。

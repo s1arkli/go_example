@@ -9,26 +9,23 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var u = User{
+	Name: "s1ark",
+	Age:  20,
+}
+
 const (
-	prefix = "redis:%d"
-	ttl    = time.Second * 30
+	ttl = time.Second * 30
 )
 
 func main() {
 	//init redis client
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
-		Password: "",
-		DB:       0,
+		Addr: "127.0.0.1:6379",
 	})
 	//params
 	ctx := context.Background()
-	key := fmt.Sprintf(prefix, 1)
-
-	var u = User{
-		Name: "s1ark",
-		Age:  20,
-	}
+	key := "user"
 
 	//marshal struct to json
 	val, _ := json.Marshal(u)
