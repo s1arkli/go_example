@@ -1,5 +1,5 @@
 # redis
-go-redis包的主要作用是把函数语言序列化为redis能听懂的语言（RESP规范），然后通过tcp连接传递给redis，实现功能。
+go-redis包的主要作用是把函数语言序列化为符合RESP规范的redis命令，然后通过tcp连接发送给redis，实现crud。
 例如get key序列化如下
 *2\r\n
 $3\r\n
@@ -47,7 +47,7 @@ func (cn *Conn) WithWriter(ctx context.Context, timeout time.Duration, fn func(w
     return cn.bw.Flush()
 }
 ```
-writeCmd(wr, cmd)的作用是将cmd的args以RESP的方式序列化写入wr待用。其中cn是封装了tcp连接的*pool.Conn，cn.WithWriter的作用是将完成序列化
+writeCmd(wr, cmd)的作用是将cmd的args以RESP的规范序列化写入wr待用。其中cn是封装了tcp连接的*pool.Conn，cn.WithWriter的作用是将完成序列化
 的内容写入缓冲区，调用Flush将缓存区的内容经tcp发送给redis，redis执行命令，实现crud。
 
 # 总结
@@ -59,5 +59,19 @@ writeCmd(wr, cmd)的作用是将cmd的args以RESP的方式序列化写入wr待�
 的是需要经常拓展或者修改的内容，就适合map，临时定义struct不现实。在meet项目中，我们将最常用的user结构体存入redis，在get的时候也是用user结构体
 去解析，这样就省下读取mysql的步骤，直接从redis内部读取。
 
+- 连接池：
+    - 配置opt--连接超时、最小最大连接数量、连接的持续时间等等，所有的配置都从这个字段读取
+    - 读写缓存区大小--过大缓存长时间在缓存区，造成读写延迟高。过小导致频繁调用缓存区，导致资源浪费。
+    - 错误保存
+    - 并发锁--很可能高频使用连接，需要增加锁来保证并发安全。
+    - 连接数组--保存所有的tcp连接，方便进行关闭和新增连接
+    - 钩子函数--方便在连接前后增加自己需要的逻辑，如在连接前后增加日志
+
 - 学到了把结构体的方法赋值给其他结构体的函数字段，这样两个函数都可以调用这个方法（这个字段就像是一个接口一样，满足这样的函数形式的函数都可以赋值给这个
 结构体，这个结构体就可以调用不同的方法）。
+
+- 类型断言判断接口是否实现
+```go
+var _ Pooler = (*ConnPool)(nil)
+```
+var一个Pooler类型变量，将nil类型断言为*ConnPool类型，可以在编译之前判断定义的ConnPool是否实现了Pooler接口。
