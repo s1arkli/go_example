@@ -10,7 +10,9 @@ key\r\n
 # Client
 ```go
 type Client struct {
+	//
 	*baseClient
+	//process func
 	cmdable
 }
 ```
@@ -31,33 +33,26 @@ c.cmdable = c.Process被Process赋值，后续会使用到）
 
 - 重点部分
 ```go
-if err := cn.WithWriter(c.context(ctx), c.opt.WriteTimeout, func(wr *proto.Writer) error {
-  return writeCmd(wr, cmd)
+    if err := cn.WithWriter(c.context(ctx), c.opt.WriteTimeout, func(wr *proto.Writer) error {
+        return writeCmd(wr, cmd)
   }); err != nil {...}
 
-func (cn *Conn) WithWriter(
-ctx context.Context, timeout time.Duration, fn func(wr *proto.Writer) error,
-) error {
-...
-// Reset the buffered writer if needed, should not happen
-if cn.bw.Buffered() > 0 {
-if netConn := cn.getNetConn(); netConn != nil {
-cn.bw.Reset(netConn)
-}
-}
-
-if err := fn(cn.wr); err != nil {
-return err
-}
-
-return cn.bw.Flush()
+func (cn *Conn) WithWriter(ctx context.Context, timeout time.Duration, fn func(wr *proto.Writer) error,) error {
+    ...
+	//marshal cmd
+    if err := fn(cn.wr); err != nil {
+        return err
+    }
+    //send cmd by tcp
+    return cn.bw.Flush()
 }
 ```
 writeCmd(wr, cmd)的作用是将cmd的args以RESP的方式序列化写入wr待用。其中cn是封装了tcp连接的*pool.Conn，cn.WithWriter的作用是将完成序列化
 的内容写入缓冲区，调用Flush将缓存区的内容经tcp发送给redis，redis执行命令，实现crud。
 
 # 总结
-- 此包就是把redis能看懂的RESP协议的语言，高度抽象为go函数，每次调用go函数，就是将函数语言转换为redis语言。
+- 此包就是把redis能看懂的符合RESP协议的命令，高度抽象为go函数，每次调用go函数，就是将输入的命令和参数编码为redis命令，并将命令经tcp连接传输
+给redis。
 
 - 关于结构体和map的使用，结构体是具有固定字段，在序列化为json的时候需要有结构体实例，并且需要json tag。而map没有固定字段，以k-v的形式，
 可以保存任意k-v信息，灵活性更好。我觉得应该是看需要解析的内容的结构，如果是固定结构，例如mysql表内的固定struct，就可以使用struct形式。如果保存
