@@ -19,32 +19,29 @@ const (
 )
 
 func main() {
-	//init redis client
+	//Initialize Redis client
 	rdb := redis.NewClient(&redis.Options{
 		Addr: "127.0.0.1:6379",
 	})
-	//params
 	ctx := context.Background()
 	key := "user"
 
-	//marshal struct to json
+	//Serialize struct to json
 	val, _ := json.Marshal(u)
 
-	//set cache with ttl(time to live)
+	//Store data in Redis with TTL(time to live)
 	rdb.Set(ctx, key, val, ttl)
 
-	//get cache
 	str, _ := rdb.Get(ctx, key).Result()
 
-	//unmarshal json to map
+	//Deserialize json to map
 	var result map[string]interface{}
 	json.Unmarshal([]byte(str), &result)
 	fmt.Println(result)
 
-	//del cache
 	rdb.Del(ctx, key)
 
-	//check is exist
+	//Verify whether the key still exists in Redis
 	_, err := rdb.Get(ctx, key).Result()
 	fmt.Println(err)
 }
