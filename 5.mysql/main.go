@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"example/5.mysql/model"
+	"example/5.mysql/sql"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,25 +14,29 @@ func main() {
 	dsn := "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
 	db, _ := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
+	//检查是否存在对应表结构，不存在则创建
 	if err := db.AutoMigrate(&model.User{}); err != nil {
 		panic(err)
 	}
 
-	user := model.User{
-		Name: "s1ark",
-		Age:  24,
-	}
-	create(db, user)
-
-	fmt.Println(get(db))
+	//insert(db)
+	fmt.Println(get(db, 1))
 }
 
-func create(db *gorm.DB, user model.User) {
-	db.Create(&user)
+func insert(db *gorm.DB, name string, age int) {
+	db.Exec(sql.Insert, name, age)
 }
 
-func get(db *gorm.DB) model.User {
-	var user model.User
-	db.First(&user)
-	return user
+func get(db *gorm.DB, id int64) model.User {
+	var result model.User
+	db.Raw(sql.Select, id).Scan(&result)
+	return result
+}
+
+func delete(db *gorm.DB, id int64) {
+	db.Exec(sql.Delete, id)
+}
+
+func update(db *gorm.DB, name string, age int, id int64) {
+	db.Exec(sql.Update, name, age, id)
 }
