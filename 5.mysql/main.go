@@ -14,13 +14,16 @@ func main() {
 	dsn := "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
 	db, _ := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
-	//检查是否存在对应表结构，不存在则创建
-	if err := db.AutoMigrate(&model.User{}); err != nil {
-		panic(err)
-	}
+	//init
+	//createTable(db)
 
-	//insert(db)
+	insert(db, "tom", 18)
+
 	fmt.Println(get(db, 1))
+}
+
+func createTable(db *gorm.DB) {
+	db.Exec(sql.Create)
 }
 
 func insert(db *gorm.DB, name string, age int) {
