@@ -45,7 +45,26 @@ Exec支持两种入参方式，@是命名参数，不依赖参数位置。而后
 ```go
  tx.callbacks.Raw().Execute(tx)
 ```
-使用注册回调的方式执行
+使用注册的回调函数执行
+
+## db.Raw
+```go
+func (db *DB) Raw(sql string, values ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.SQL = strings.Builder{}
+
+	if strings.Contains(sql, "@") {
+		clause.NamedExpr{SQL: sql, Vars: values}.Build(tx.Statement)
+	} else {
+		clause.Expr{SQL: sql, Vars: values}.Build(tx.Statement)
+	}
+	return
+}
+```
+db.Raw对比db.Exec只是少了回调函数的使用，Raw只是构建查询，不涉及具体执行。
+
+## 总结
+gorm包的作用是建立mysql连接，并将sql语句发送给mysql执行，最终拿到返回结果。
 
 ## tips
 - 在返回值处进行初始化，就可以不return具体的变量，在函数内部赋值即可。
