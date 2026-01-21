@@ -47,6 +47,36 @@ Exec支持两种入参方式，@是命名参数，不依赖参数位置。而后
 ```
 使用注册的回调函数执行
 
+```go
+func RegisterDefaultCallbacks(){
+	...
+	
+    rawCallback := db.Callback().Raw()
+    rawCallback.Register("gorm:raw", RawExec)
+    rawCallback.Clauses = config.QueryClauses
+}
+```
+所有的回调函数在callbacks包内的callbacks.go内注册。其中这三行是注册db.Exec执行的具体函数的位置。
+```go
+func RawExec(db *gorm.DB) {
+	if db.Error == nil && !db.DryRun {
+		result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+		if err != nil {
+			db.AddError(err)
+			return
+		}
+
+		db.RowsAffected, _ = result.RowsAffected()
+
+		if db.Statement.Result != nil {
+			db.Statement.Result.Result = result
+			db.Statement.Result.RowsAffected = db.RowsAffected
+		}
+	}
+}
+```
+这是内部真正执行的函数入口，内部从连接池中获取db连接，执行具体query，连接池的管理等等。
+
 ## db.Raw
 ```go
 func (db *DB) Raw(sql string, values ...interface{}) (tx *DB) {
@@ -63,8 +93,23 @@ func (db *DB) Raw(sql string, values ...interface{}) (tx *DB) {
 ```
 db.Raw对比db.Exec只是少了回调函数的使用，Raw只是构建查询，不涉及具体执行。
 
+## Build
+```go
+func (expr NamedExpr) Build(builder Builder) 
+```
+Build函数的作用是将sql转换为[]byte，并逐一写入缓冲区，处理sql中的？按照规则绑定参数。
+
 ## 总结
-gorm包的作用是建立mysql连接，并将sql语句发送给mysql执行，最终拿到返回结果。
+gorm包的作用使用数据库驱动建立数据库连接，并将函数语言的crud转换成对应的sql方言经tcp连接发送给数据库，并拿到返回值。
+准备---->构建---->执行---->收尾
 
 ## tips
 - 在返回值处进行初始化，就可以不return具体的变量，在函数内部赋值即可。
+
+- 在执行sql的时候有一个统一处理err的方式，此方式不论最后成功与否，只根据err的状态判断连接的状态并做出相应的操作（例如：好连接放回连接池，坏连接关闭等等）
+是一个对错误处理的好方式。
+```go
+defer func() {
+		release(err)
+	}()
+```
