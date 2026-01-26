@@ -1,5 +1,10 @@
-# mysql
-mysql包的作用是根据输入的mysql配置，连接mysql服务，将sql语言发送给mysql执行并将得到的数据返回给客户端，完数据库的crud。
+# gorm
+gorm本质上是对go语言标准库sql包的进一步封装，在其之上提供了方便的事务管理、链式查询api、模型映射，从而降低开发的复杂度。
+
+# sql
+标准库sql，是建立连接池，通过下载对应关系型数据库的驱动，使用驱动产生具体连接。1.定义了一些规范接口，例如db.Exec,db.Query用于与数据库进行交互。
+2.建立连接池，让连接可复用，管理连接数量和存活时间等。3.提供基础的事务管理，db.BeginTx，tx.Rollback,tx.Commit。4.可以更换驱动就可以切换不同
+的关系性数据库，迁移成本低。
 
 ## config
 mysql包有三个config结构体dsn,mysql,gorm。其中dsn.config保存的是客户端的用户名、密码、地址等客户端的连接信息。mysql.config主要是保存mysql
