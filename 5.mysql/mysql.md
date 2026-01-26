@@ -113,3 +113,5 @@ defer func() {
 		release(err)
 	}()
 ```
+
+- gorm底层执行代码还是调用的go官方sql包，在使用方面官方go包和gorm差别不大
