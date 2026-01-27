@@ -17,28 +17,32 @@ func main() {
 		panic(err)
 	}
 
-	//createTable_(db)
-	fmt.Println(get_(db, 1))
+	//createTable(db)
+	//update(db, "s1s1", 28, 1)
+	//insert(db, "s2s2", 29)
+	//delete(db, 2)
+
+	fmt.Println(get(db, 1))
 }
 
-func createTable_(db *gsql.DB) {
+func createTable(db *gsql.DB) {
 	db.Exec(sql.Create)
 }
 
-func insert_(db *gsql.DB, name string, age int) {
+func insert(db *gsql.DB, name string, age int) {
 	db.Exec(sql.Insert, name, age)
 }
 
-func get_(db *gsql.DB, id int64) model.User {
+func get(db *gsql.DB, id int64) model.User {
 	var result model.User
 	db.QueryRow(sql.Select, id).Scan(&result.ID, &result.Name, &result.Age, &result.CreatedAt, &result.UpdatedAt)
 	return result
 }
 
-func delete_(db *gsql.DB, id int64) {
+func delete(db *gsql.DB, id int64) {
 	db.Exec(sql.Delete, id)
 }
 
-func update_(db *gsql.DB, name string, age int, id int64) {
+func update(db *gsql.DB, name string, age int, id int64) {
 	db.Exec(sql.Update, name, age, id)
 }
