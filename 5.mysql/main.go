@@ -1,45 +1,48 @@
 package main
 
 import (
+	gsql "database/sql"
 	"fmt"
 
 	"example/5.mysql/model"
 	"example/5.mysql/sql"
-
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 	dsn := "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=True&loc=Local"
-	db, _ := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, _ := gsql.Open("mysql", dsn)
 
-	//init
+	if err := db.Ping(); err != nil {
+		panic(err)
+	}
+
 	//createTable(db)
-
-	insert(db, "tom", 18)
+	//update(db, "s1s1", 28, 1)
+	//insert(db, "s2s2", 29)
+	//delete(db, 2)
 
 	fmt.Println(get(db, 1))
 }
 
-func createTable(db *gorm.DB) {
+func createTable(db *gsql.DB) {
 	db.Exec(sql.Create)
 }
 
-func insert(db *gorm.DB, name string, age int) {
+func insert(db *gsql.DB, name string, age int) {
 	db.Exec(sql.Insert, name, age)
 }
 
-func get(db *gorm.DB, id int64) model.User {
+func get(db *gsql.DB, id int64) model.User {
 	var result model.User
-	db.Raw(sql.Select, id).Scan(&result)
+	db.QueryRow(sql.Select, id).Scan(&result.ID, &result.Name, &result.Age, &result.CreatedAt, &result.UpdatedAt)
 	return result
 }
 
-func delete(db *gorm.DB, id int64) {
+func delete(db *gsql.DB, id int64) {
 	db.Exec(sql.Delete, id)
 }
 
-func update(db *gorm.DB, name string, age int, id int64) {
+func update(db *gsql.DB, name string, age int, id int64) {
 	db.Exec(sql.Update, name, age, id)
 }
