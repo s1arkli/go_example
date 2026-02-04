@@ -13,17 +13,8 @@ func main() {
 	ch, _ := conn.Channel()
 	defer ch.Close()
 
-	q, _ := ch.QueueDeclare(
-		"test",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-
 	msgs, _ := ch.Consume(
-		q.Name,
+		"test",
 		"",
 		true,
 		false,
@@ -32,6 +23,7 @@ func main() {
 		nil,
 	)
 
+	//接受消息
 	for msg := range msgs {
 		fmt.Println(string(msg.Body))
 	}

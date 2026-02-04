@@ -2,10 +2,16 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+
+	"example/6.rabbitMQ/queue"
+)
+
+var (
+	queueName_01 = "test"
 )
 
 func main() {
@@ -15,29 +21,25 @@ func main() {
 	ch, _ := conn.Channel()
 	defer ch.Close()
 
-	q, _ := ch.QueueDeclare(
-		"test",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
+	queue.NewQueue(ch, queueName_01)
 
-	// 4. 发布消息
+	//  发布消息
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	body, _ := json.Marshal("hi")
-	_ = ch.PublishWithContext(
-		ctx,
-		"",     // exchange: 空字符串表示使用默认 exchange
-		q.Name, // routing key: 这里直接用队列名
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-		},
-	)
+	for i := 0; i < 5; i++ {
+		_ = ch.PublishWithContext(
+			ctx,
+			"",
+			queueName_01, // 队列名称
+			false,
+			false,
+			amqp.Publishing{
+				Body: []byte(fmt.Sprintf("第%d次消息", i+1)),
+			},
+		)
+
+		time.Sleep(1 * time.Second)
+	}
+
 }
