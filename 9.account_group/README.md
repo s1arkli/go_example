@@ -37,7 +37,7 @@ type LoginReq struct {
       验证码。
     - 收到手机号+验证码，读取缓存验证手机号和其验证码是否对应上。
 
-## Auth middleware
+### Auth middleware
 
 ```go
 func Auth(ac *jwt.AuthClaims, account *repository.Account) gin.HandlerFunc {
@@ -48,9 +48,11 @@ func Auth(ac *jwt.AuthClaims, account *repository.Account) gin.HandlerFunc {
 
 - 从header中拿到token，解析token，拿到其中保存的userID作为该用户的身份信息往后传递。同时也会对userID进行检验，看看是否是数据库中存在的
 合法用户。
-- 把解析的userID放到gin.Context中，统一使用getUserID函数获取。
+- 把解析的userID放到gin.Context中，统一使用getUserID函数获取，这是区分调用方身份的关键。
 ```go
 func getUserID(c *gin.Context) int64 {
 	return c.GetInt64("user_id")
 }
 ```
+
+### 
