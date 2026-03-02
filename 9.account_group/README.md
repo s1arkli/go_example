@@ -54,3 +54,33 @@ func getUserID(c *gin.Context) int64 {
 	return c.GetInt64("user_id")
 }
 ```
+- 内部还有账号的异地登陆检查（token的签发时间如果在最后登陆时间之前，则说明切换了登陆设备需要重新登陆）、注销中检测（如果账号状态为注销中则限制
+访问接口）
+
+### getOrCreate
+```go
+func (a *Account) getOrCreate(ctx context.Context, accountInfo *account.Account) (*account.Account, error) {}
+```
+- 内部是一个事务，主要是检查用户数据，存在则更新用户最后登陆时间，反之则创建本地以及云信账号并发送系统通知。
+
+
+## Delete
+```go
+account.DELETE("", authMiddleware, ui.Delete)
+```
+- 注销账号接口（auth中间件，保证不是非法调用）修改账号状态为注销中（需要发送验证码验证）
+
+## Recover
+```go
+account.POST("/recover", authMiddleware, ui.Recover)
+```
+- 取消注销接口（超过14天完全注销需重新注册）修复账号状态
+
+## Detail
+```go
+account.GET("", authMiddleware, ui.Detail)
+```
+- 获取账号详情，主要是客户端回显账号信息（是否正在注销、加敏的手机号显示等等）
+
+# summary
+- login
