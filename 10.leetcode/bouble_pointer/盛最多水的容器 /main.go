@@ -13,5 +13,20 @@ package main
 */
 
 func maxArea(height []int) int {
+	lt, rt := 0, len(height)-1
+	area := 0
 
+	for lt < rt {
+		high := min(height[lt], height[rt])
+		if area1 := high * (rt - lt); area1 > area {
+			area = area1
+		}
+
+		if high == height[lt] {
+			lt++
+		} else {
+			rt--
+		}
+	}
+	return area
 }
