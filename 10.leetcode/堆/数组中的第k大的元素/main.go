@@ -18,7 +18,7 @@ func main() {
 	fmt.Println(findKthLargest(nums, 2))
 }
 
-func findKthLargest(nums []int, k int) int {
+func findKthLargest_(nums []int, k int) int {
 	//快速排序，找到下标=n-k的元素
 	return quickSort(nums, 0, len(nums)-1, len(nums)-k)
 }
