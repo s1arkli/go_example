@@ -183,8 +183,12 @@
       "bases:新建数据库": false
     }
   },
-  "active": "6d8890bc53105905",
+  "active": "f30c72ad3dd9ced3",
   "lastOpenFiles": [
+    "10.leetcode/链表/k个一组翻转链表/main.go",
+    "10.leetcode/链表/k个一组翻转链表",
+    "10.leetcode/链表/相邻链表交换/main.go",
+    "10.leetcode/链表/相邻链表交换",
     "10.leetcode/链表/删除倒数第n个节点/main.go",
     "10.leetcode/链表/删除倒数第n个节点",
     "13.src_code/sync/map.go",
