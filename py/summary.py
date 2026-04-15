@@ -18,3 +18,6 @@ for repo in ['carutoo-server', 'carl_server']:
         f.write(f'\n## {repo}\n\n')
         f.write(result.stdout)
 print('总结完毕')
+
+#  echo "alias daily='python3 /Users/cc/go_project/go_example/py/summary.py' " >> ~/.zshrc
+# 把命令加入配置文件，使用daily运行
