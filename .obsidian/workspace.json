@@ -185,6 +185,9 @@
   },
   "active": "f30c72ad3dd9ced3",
   "lastOpenFiles": [
+    "py/a-plain.txt",
+    "py/a.txt",
+    "py/htmlToTxt.py",
     "13.src_code/sync/sync.Map.md",
     "13.src_code/sync/sync.Map.d",
     "py/summary.py",
@@ -194,8 +197,6 @@
     "10.leetcode/链表/k个一组翻转链表",
     "10.leetcode/链表/相邻链表交换/main.go",
     "10.leetcode/链表/相邻链表交换",
-    "10.leetcode/链表/删除倒数第n个节点/main.go",
-    "10.leetcode/链表/删除倒数第n个节点",
-    "13.src_code/sync/map.go"
+    "10.leetcode/链表/删除倒数第n个节点/main.go"
   ]
 }
