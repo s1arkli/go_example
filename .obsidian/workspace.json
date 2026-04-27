@@ -11,14 +11,10 @@
             "id": "f30c72ad3dd9ced3",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "13.src_code/sync/sync.Once.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "sync.Once"
+              "title": "新标签页"
             }
           }
         ]
