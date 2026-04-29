@@ -1,4 +1,4 @@
-package waitGroup
+package main
 
 func main() {
 
