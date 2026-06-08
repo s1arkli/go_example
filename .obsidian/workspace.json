@@ -8,31 +8,31 @@
         "type": "tabs",
         "children": [
           {
-            "id": "f30c72ad3dd9ced3",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "未命名.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "未命名"
-            }
-          },
-          {
             "id": "2d854a81c78183e9",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "登录测试.md",
+                "file": "云端登录测试.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "登录测试"
+              "title": "云端登录测试"
+            }
+          },
+          {
+            "id": "7bf7fcbd2ca47c24",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "云端登录测试.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "云端登录测试"
             }
           }
         ],
@@ -198,11 +198,21 @@
       "bases:新建数据库": false
     }
   },
-  "active": "2d854a81c78183e9",
+  "active": "7bf7fcbd2ca47c24",
   "lastOpenFiles": [
-    "Pasted image 20260604142341.png",
+    "本地登录测试.md",
+    "云端登录测试.md",
+    "Pasted image 20260606153543.png",
+    "Pasted image 20260606153457.png",
+    "Pasted image 20260606153119.png",
+    "Pasted image 20260606152706.png",
+    "Pasted image 20260606152542.png",
+    "Pasted image 20260606152450.png",
+    "Pasted image 20260606152445.png",
     "未命名.md",
-    "登录测试.md",
+    "Pasted image 20260606151657.png",
+    "Pasted image 20260606151524.png",
+    "Pasted image 20260606151231.png",
     "trace.out",
     "main_test.go",
     "13.src_code/sync/pool/main.go",
